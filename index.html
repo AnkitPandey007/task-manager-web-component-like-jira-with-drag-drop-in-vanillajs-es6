@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="./styles/index.css" />
+    <title>Task Manager</title>
+  </head>
+  <body>
+    <task-manager>
+      <span slot="task-heading">Task Manager</span>
+      <span slot="todo">To Do (Jira Id)</span>
+      <span slot="inProgress">In Progress</span>
+      <span slot="finished">Done</span>
+    </task-manager>
+
+    <task-manager>
+      <span slot="task-heading">Movie Review Board</span>
+      <span slot="todo">Movie Name</span>
+      <span slot="inProgress">Like</span>
+      <span slot="finished">Dislike</span>
+    </task-manager>
+
+    <script src="./todo-component/todo.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
