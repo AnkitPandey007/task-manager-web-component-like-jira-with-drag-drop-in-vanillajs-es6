@@ -14,8 +14,12 @@
       <span slot="finished">Done</span>
     </task-manager>
 
-    <task-manager>
+    <!-- is-all-drag-drop="true" => all column should be draggable abd droppable -->
+    <task-manager is-all-drag-drop="true">
       <span slot="task-heading">Movie Review Board</span>
+      <span slot="task-sub-heading"
+        >(All column's items are draggable and droppable)</span
+      >
       <span slot="todo">Movie Name</span>
       <span slot="inProgress">Like</span>
       <span slot="finished">Dislike</span>

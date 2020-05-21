@@ -45,7 +45,7 @@ template.innerHTML = `
   color: white;
 }
 .todo-container .todo-body .todo-content > div:nth-child(2) {
-  border: 4px solid #f9f9f9;
+  border: 5px solid #f9f9f9;
   max-height: 300px;
   min-height: 100%;
   padding: 5px;
@@ -69,6 +69,14 @@ template.innerHTML = `
   cursor: move;
 }
 
+.no-selection {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently supported by Chrome and Opera */
+}
 /* Custom Scrollbar : Start */
 .todo-container ::-webkit-scrollbar {
   width: 12px;
@@ -96,10 +104,14 @@ template.innerHTML = `
 <!-- style: start -->
 <!----------------------------------------------------  Template  --------------------------------------------->
 <div class="todo-container">
-  <div class="todo-header"><slot name="task-heading"></slot></div>
-  <div class="todo-body">
+  <div class="todo-header">
+    <slot name="task-heading"></slot>
+    <div><slot name="task-sub-heading"></slot></div>
+  </div>
+
+  <div class="todo-body no-selection">
     <div class="todo-content">
-      <div><slot name="todo"></todo></div>
+      <div><slot name="todo"></slot></div>
       <div id="todo" data-status="todo"></div>
     </div>
 
@@ -129,6 +141,7 @@ class TodoComponent extends HTMLElement {
     this.todoElem = {};
     this.inProgressElem = {};
     this.finishedElem = {};
+    this.isAllDragDrop = false;
   }
 
   /**
@@ -139,6 +152,12 @@ class TodoComponent extends HTMLElement {
     this.inProgressElem = this.shadowRoot.getElementById("inprogress");
     this.finishedElem = this.shadowRoot.getElementById("finished");
 
+    this.isAllDragDrop = this.getAttribute("is-all-drag-drop");
+    if (this.isAllDragDrop) {
+      this.todoElem.addEventListener("drop", this.dropHandler.bind(this));
+      this.todoElem.addEventListener("dragover", this.dragOverHandler);
+      this.todoElem.addEventListener("dragleave", this.dragleaveHandler);
+    }
     // adding event handler
     this.inProgressElem.addEventListener("drop", this.dropHandler.bind(this));
     this.inProgressElem.addEventListener("dragover", this.dragOverHandler);
@@ -180,7 +199,7 @@ class TodoComponent extends HTMLElement {
       switch (key) {
         case "todo":
           str += `<div 
-                    id="todo${index}" 
+                    id="todo${index}"
                     draggable="true" 
                     data-name="${data.name}" 
                     data-status="todo">
@@ -190,7 +209,7 @@ class TodoComponent extends HTMLElement {
           break;
         case "inProgress":
           str += `<div 
-                    id="inProgress${index}" 
+                    id="inProgress${index}"
                     draggable="true"
                     data-name="${data.name}" 
                     data-status="inProgress">
@@ -198,19 +217,33 @@ class TodoComponent extends HTMLElement {
                   </div>`;
           break;
         case "finished":
-          str += `<div 
-                    id="finished${index}"
-                    data-name="${data.name}"
-                    data-status="finished">
-                      ${data.name}
-                  </div>`;
+          if (this.isAllDragDrop) {
+            str += `<div 
+                      id="finished${index} 
+                      data-name="${data.name}"
+                      draggable=true
+                      data-status="finished"
+                      style="cursor:move">
+                        ${data.name}
+                    </div>`;
+          } else {
+            str += `<div 
+                      id="finished${index}
+                      draggable="false"                    
+                      data-name="${data.name}"
+                      data-status="finished"
+                      style="cursor:not-allowed!important;">
+                        ${data.name}
+                    </div>`;
+          }
       }
     });
 
-    // dynamic html genration
+    // dynamic html genration for column data
     if (key) {
       this[key + "Elem"].innerHTML = str;
       if (key === "todo") {
+        // for todo dragstart
         let selector = `[id|="${key}"]`;
         // adding event
         this.shadowRoot.querySelectorAll(selector).forEach((rowElem) => {
@@ -219,9 +252,18 @@ class TodoComponent extends HTMLElement {
             this.dragStartHandeler.bind(this)
           );
         });
-      }
-
-      if (key === "inProgress") {
+      } else if (key === "inProgress") {
+        // for inProgress dragstart
+        let selector = `[id|="${key.toLowerCase()}"]`;
+        // adding event
+        this.shadowRoot.querySelectorAll(selector).forEach((rowElem) => {
+          rowElem.addEventListener(
+            "dragstart",
+            this.dragStartHandeler.bind(this)
+          );
+        });
+      } else if (key === "finished" && this.isAllDragDrop) {
+        // for finished dragstart
         let selector = `[id|="${key.toLowerCase()}"]`;
         // adding event
         this.shadowRoot.querySelectorAll(selector).forEach((rowElem) => {
@@ -251,21 +293,24 @@ class TodoComponent extends HTMLElement {
    * @param {object} e - event
    */
   dropHandler(e) {
-    let dragIndex, splicedData;
-    let droppedStatus = e.target.getAttribute("data-status");
-    let draggedData = JSON.parse(e.dataTransfer.getData("text"));
-    if (draggedData.status !== droppedStatus) {
-      // do not drop on same own status
-      dragIndex = this.appData[draggedData.status].findIndex(
-        (data) => data.name === draggedData.name
-      );
-      splicedData = this.appData[draggedData.status].splice(dragIndex, 1);
-      this.appData[droppedStatus].push(splicedData[0]);
+    try {
+      let dragIndex, splicedData;
+      let droppedStatus = e.target.getAttribute("data-status");
+      let draggedData = JSON.parse(e.dataTransfer.getData("text"));
+      if (draggedData.status !== droppedStatus) {
+        // do not drop on same own status
+        dragIndex = this.appData[draggedData.status].findIndex(
+          (data) => data.name === draggedData.name
+        );
+        splicedData = this.appData[draggedData.status].splice(dragIndex, 1);
+        this.appData[droppedStatus].push(splicedData[0]);
 
-      e.target.style.boxShadow = "none";
+        e.target.style.boxShadow = "none";
+        this.renderingHTML(droppedStatus, draggedData.status);
+      }
+    } catch (e) {
+      console.log(e);
     }
-
-    this.renderingHTML(droppedStatus, draggedData.status);
   }
 
   /**
