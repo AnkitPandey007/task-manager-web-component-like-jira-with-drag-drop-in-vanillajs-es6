@@ -13,6 +13,7 @@ template.innerHTML = `
   width: 80%;
   margin: auto;
   margin-top: 20px;
+  margin-bottom: 20px;
   padding-bottom: 40px;
   min-height: 450px;
   background-color: white;
